@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailored Resume — Resume Tailor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0d0d0f;
+            --surface: #16161a;
+            --surface-2: #1e1e24;
+            --border: #2a2a35;
+            --accent: #7c6af7;
+            --text: #e8e8f0;
+            --text-muted: #8888a0;
+            --success: #4ade80;
+            --error: #f87171;
+            --radius: 12px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .orb { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0; }
+        .orb-1 { width: 400px; height: 400px; background: var(--success); top: -100px; right: -100px; opacity: 0.07; }
+        .orb-2 { width: 300px; height: 300px; background: var(--accent); bottom: -50px; left: -50px; opacity: 0.1; }
+
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 48px 24px 64px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 40px;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--text); }
+
+        /* Header */
+        .success-header { margin-bottom: 40px; animation: fadeDown 0.5s ease both; }
+
+        .success-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(74,222,128,0.1);
+            border: 1px solid rgba(74,222,128,0.3);
+            color: var(--success);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 999px;
+            margin-bottom: 16px;
+            letter-spacing: 0.04em;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(28px, 4vw, 46px);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin-bottom: 10px;
+        }
+        .subtitle { color: var(--text-muted); font-size: 15px; max-width: 520px; line-height: 1.6; }
+
+        .stats-row {
+            display: flex;
+            gap: 28px;
+            flex-wrap: wrap;
+            margin-top: 28px;
+            padding-top: 28px;
+            border-top: 1px solid var(--border);
+        }
+        .stat { display: flex; flex-direction: column; gap: 3px; }
+        .stat-value {
+            font-family: 'Syne', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; }
+
+        /* Action cards */
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+            animation: fadeUp 0.5s ease 0.05s both;
+        }
+        @media (max-width: 720px) { .actions-grid { grid-template-columns: 1fr; } }
+
+        .action-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+        .action-card:hover { transform: translateY(-3px); }
+
+        .action-card.pdf:hover  { border-color: rgba(248,113,113,0.5); box-shadow: 0 8px 32px rgba(248,113,113,0.1); }
+        .action-card.docx:hover { border-color: rgba(96,165,250,0.5);  box-shadow: 0 8px 32px rgba(96,165,250,0.1); }
+        .action-card.gdocs:hover{ border-color: rgba(74,222,128,0.5);  box-shadow: 0 8px 32px rgba(74,222,128,0.1); }
+
+        .action-card.pdf  { border-color: rgba(248,113,113,0.2); }
+        .action-card.docx { border-color: rgba(96,165,250,0.2); }
+        .action-card.gdocs{ border-color: rgba(74,222,128,0.2); cursor: pointer; }
+
+        .action-icon { font-size: 26px; line-height: 1; }
+        .action-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+        .action-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; flex: 1; }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: background 0.15s;
+            text-decoration: none;
+            width: fit-content;
+        }
+        .action-card.pdf  .action-btn { background: rgba(248,113,113,0.15); color: #fca5a5; }
+        .action-card.pdf  .action-btn:hover { background: rgba(248,113,113,0.28); }
+        .action-card.docx .action-btn { background: rgba(96,165,250,0.15);  color: #93c5fd; }
+        .action-card.docx .action-btn:hover { background: rgba(96,165,250,0.28); }
+        .action-card.gdocs .action-btn { background: rgba(74,222,128,0.15); color: #86efac; }
+        .action-card.gdocs .action-btn:hover { background: rgba(74,222,128,0.28); }
+
+        /* Google Docs tip */
+        .gdocs-tip {
+            background: rgba(74,222,128,0.04);
+            border: 1px solid rgba(74,222,128,0.2);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            font-size: 13.5px;
+            color: var(--text-muted);
+            line-height: 1.75;
+            margin-bottom: 24px;
+            display: none;
+            animation: fadeDown 0.3s ease both;
+        }
+        .gdocs-tip.visible { display: block; }
+        .gdocs-tip strong  { color: var(--text); }
+        .gdocs-tip .step-list { padding-left: 0; list-style: none; margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+        .gdocs-tip .step-list li {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .step-num {
+            min-width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(74,222,128,0.15);
+            border: 1px solid rgba(74,222,128,0.3);
+            color: var(--success);
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Syne', sans-serif;
+            margin-top: 2px;
+        }
+        .gdocs-tip a { color: var(--success); text-decoration: underline; text-underline-offset: 3px; }
+        .gdocs-tip .tip-footer {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(74,222,128,0.12);
+            font-size: 12.5px;
+            font-style: italic;
+        }
+
+        /* Resume panel */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            animation: fadeUp 0.5s ease 0.15s both;
+        }
+        .panel-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .panel-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .copy-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover   { border-color: var(--accent); color: var(--accent); }
+        .copy-btn.copied  { color: var(--success); border-color: var(--success); }
+
+        .panel-body { padding: 24px; }
+        .resume-text {
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            line-height: 1.85;
+            color: var(--text);
+            white-space: pre-wrap;
+            max-height: 560px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .resume-text::-webkit-scrollbar { width: 5px; }
+        .resume-text::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .new-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 11px 18px;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.2s;
+            margin-top: 28px;
+        }
+        .new-btn:hover { color: var(--text); border-color: var(--accent); }
+
+        /* Changes panel */
+        .changes-section {
+            margin-bottom: 24px;
+            animation: fadeUp 0.5s ease 0.1s both;
+        }
+
+        .changes-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 20px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .changes-toggle:hover {
+            border-color: rgba(124,106,247,0.5);
+            box-shadow: 0 4px 20px rgba(124,106,247,0.08);
+        }
+
+        .changes-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(124,106,247,0.18);
+            border: 1px solid rgba(124,106,247,0.35);
+            color: #a99ff7;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+            padding: 3px 9px;
+            border-radius: 999px;
+            letter-spacing: 0.04em;
+        }
+
+        .changes-toggle-label {
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            flex: 1;
+        }
+
+        .changes-chevron {
+            color: var(--text-muted);
+            font-size: 12px;
+            transition: transform 0.25s;
+        }
+        .changes-chevron.open { transform: rotate(180deg); }
+
+        .changes-list {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .changes-list.visible { display: flex; }
+
+        .change-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .change-diff {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+        @media (max-width: 640px) { .change-diff { grid-template-columns: 1fr; } }
+
+        .change-before, .change-after {
+            padding: 14px 16px;
+            font-family: 'DM Mono', monospace;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .change-before {
+            background: rgba(248,113,113,0.06);
+            border-right: 1px solid var(--border);
+            color: #fca5a5;
+        }
+        @media (max-width: 640px) { .change-before { border-right: none; border-bottom: 1px solid var(--border); } }
+
+        .change-after {
+            background: rgba(74,222,128,0.06);
+            color: #86efac;
+        }
+
+        .change-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            opacity: 0.65;
+            font-family: 'Syne', sans-serif;
+        }
+
+        .change-reason {
+            padding: 10px 16px;
+            border-top: 1px solid var(--border);
+            background: rgba(255,213,79,0.04);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+
+        .reason-icon {
+            font-size: 13px;
+            margin-top: 1px;
+            flex-shrink: 0;
+        }
+
+        @keyframes fadeDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeUp   { from { opacity:0; transform:translateY(12px);  } to { opacity:1; transform:translateY(0); } }
+    </style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="wrapper">
+    <a href="/" class="back-link">← Back to home</a>
+
+    <!-- SUCCESS -->
+    <div th:if="${success}">
+
+        <div class="success-header">
+            <div class="success-badge">✓ Resume tailored successfully</div>
+            <h1>Ready to<br>impress!</h1>
+            <p class="subtitle">Choose how you want to use your new resume — download it directly or open in Google Docs for final tweaks before saving as PDF.</p>
+            <div class="stats-row">
+                <div class="stat"><span class="stat-value" id="charCount">—</span><span class="stat-label">Characters</span></div>
+                <div class="stat"><span class="stat-value" id="wordCount">—</span><span class="stat-label">Words</span></div>
+                <div class="stat"><span class="stat-value" id="lineCount">—</span><span class="stat-label">Lines</span></div>
+            </div>
+        </div>
+
+        <!-- Action cards -->
+        <div class="actions-grid">
+
+            <div class="action-card pdf">
+                <div class="action-icon">📕</div>
+                <div class="action-title">Download as PDF</div>
+                <div class="action-desc">Ready to email or attach directly to your job application.</div>
+                <a th:href="${downloadPdfUrl}" class="action-btn" download>⬇ Download PDF</a>
+            </div>
+
+            <div class="action-card docx">
+                <div class="action-icon">📘</div>
+                <div class="action-title">Download as Word</div>
+                <div class="action-desc">Edit in Microsoft Word or LibreOffice before exporting as PDF.</div>
+                <a th:href="${downloadDocxUrl}" class="action-btn" download>⬇ Download DOCX</a>
+            </div>
+
+            <div class="action-card gdocs" onclick="toggleGdocsTip()">
+                <div class="action-icon">🟢</div>
+                <div class="action-title">Open in Google Docs</div>
+                <div class="action-desc">Edit online, adjust formatting, and save as PDF directly from Google.</div>
+                <span class="action-btn" id="gdocsBtn">→ See how to open</span>
+            </div>
+
+        </div>
+
+        <!-- Google Docs instructions -->
+        <div class="gdocs-tip" id="gdocsTip">
+            <strong>How to open in Google Docs in 3 simple steps:</strong>
+            <ol class="step-list">
+                <li>
+                    <span class="step-num">1</span>
+                    <span>
+                        <strong>Download the DOCX file</strong> — click
+                        <a th:href="${downloadDocxUrl}" download>download resume.docx</a>
+                        (this format imports into Google Docs with the best fidelity)
+                    </span>
+                </li>
+                <li>
+                    <span class="step-num">2</span>
+                    <span>
+                        Go to <a href="https://drive.google.com" target="_blank">drive.google.com</a>,
+                        drag the file into your Drive, then <strong>right-click</strong> →
+                        <strong>Open with → Google Docs</strong>
+                    </span>
+                </li>
+                <li>
+                    <span class="step-num">3</span>
+                    <span>
+                        Make any edits you want, then use
+                        <strong>File → Download → PDF Document (.pdf)</strong>
+                        to save the final version
+                    </span>
+                </li>
+            </ol>
+            <div class="tip-footer">
+                💡 In Google Docs you can adjust fonts, spacing and visual layout before generating the final PDF. It's the best way to customize the look of your resume.
+            </div>
+        </div>
+
+        <!-- Change highlights -->
+        <div class="changes-section" th:if="${changes != null and !#lists.isEmpty(changes)}">
+            <button class="changes-toggle" onclick="toggleChanges()">
+                <span class="changes-badge" th:text="${#lists.size(changes)} + ' changes'">0 changes</span>
+                <span class="changes-toggle-label">What was changed</span>
+                <span class="changes-chevron" id="changesChevron">▼</span>
+            </button>
+
+            <div class="changes-list" id="changesList">
+                <div class="change-card" th:each="change : ${changes}">
+                    <div class="change-diff">
+                        <div class="change-before">
+                            <span class="change-label">Before</span>
+                            <span th:text="${change.original}"></span>
+                        </div>
+                        <div class="change-after">
+                            <span class="change-label">After</span>
+                            <span th:text="${change.tailored}"></span>
+                        </div>
+                    </div>
+                    <div class="change-reason">
+                        <span class="reason-icon">💬</span>
+                        <span th:text="${change.reason}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Text preview -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">✦ Tailored resume text</span>
+                <button class="copy-btn" id="copyBtn" onclick="copyText()">Copy text</button>
+            </div>
+            <div class="panel-body">
+                <pre class="resume-text" id="resumeText" th:text="${tailoredText}"></pre>
+            </div>
+        </div>
+
+        <a href="/" class="new-btn">← Tailor another resume</a>
+    </div>
+
+    <!-- ERROR -->
+    <div th:if="${error}">
+        <h1 style="color: var(--error); margin-bottom: 16px;">Something went wrong</h1>
+        <p style="color: var(--text-muted); margin-bottom: 32px;" th:text="${error}"></p>
+        <a href="/" style="display:inline-flex;align-items:center;gap:8px;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:12px 20px;border-radius:var(--radius);text-decoration:none;font-size:14px;">
+            ← Try again
+        </a>
+    </div>
+</div>
+
+<script>
+    const textEl = document.getElementById('resumeText');
+    if (textEl) {
+        const text = textEl.textContent;
+        document.getElementById('charCount').textContent = text.length.toLocaleString('pt-BR');
+        document.getElementById('wordCount').textContent = text.trim().split(/\s+/).length.toLocaleString('pt-BR');
+        document.getElementById('lineCount').textContent = text.split('\n').filter(l => l.trim()).length;
+    }
+
+    function copyText() {
+        navigator.clipboard.writeText(document.getElementById('resumeText').textContent).then(() => {
+            const btn = document.getElementById('copyBtn');
+            btn.textContent = '✓ Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'Copy text'; btn.classList.remove('copied'); }, 2000);
+        });
+    }
+
+    let changesVisible = false;
+    function toggleChanges() {
+        changesVisible = !changesVisible;
+        document.getElementById('changesList').classList.toggle('visible', changesVisible);
+        document.getElementById('changesChevron').classList.toggle('open', changesVisible);
+        if (changesVisible) {
+            setTimeout(() => document.getElementById('changesList').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+        }
+    }
+
+    let tipVisible = false;
+    function toggleGdocsTip() {
+        tipVisible = !tipVisible;
+        document.getElementById('gdocsTip').classList.toggle('visible', tipVisible);
+        document.getElementById('gdocsBtn').textContent = tipVisible ? '↑ Close instructions' : '→ See how to open';
+        if (tipVisible) {
+            setTimeout(() => document.getElementById('gdocsTip').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+        }
+    }
+</script>
+</body>
+</html>
